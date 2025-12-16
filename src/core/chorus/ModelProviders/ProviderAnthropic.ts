@@ -27,22 +27,6 @@ type MeltyAnthrMessageParam = {
     hasAttachments: boolean;
 };
 
-/**
- * Converts a model name to the format expected by the Anthropic API.
- * Since we now fetch models dynamically from the Anthropic API, the model IDs
- * should already be in the correct format. This function handles legacy aliases.
- */
-function getAnthropicModelName(modelName: string): string {
-    // Handle legacy aliases that map to specific versions
-    const aliasMap: Record<string, string> = {
-        "claude-sonnet-4-latest": "claude-sonnet-4-0",
-        "claude-opus-4-latest": "claude-opus-4-0",
-        "claude-opus-4.1-latest": "claude-opus-4-1-20250805",
-    };
-
-    return aliasMap[modelName] ?? modelName;
-}
-
 export class ProviderAnthropic implements IProvider {
     async streamResponse({
         modelConfig,
@@ -56,7 +40,6 @@ export class ProviderAnthropic implements IProvider {
         customBaseUrl,
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
-        const anthropicModelName = getAnthropicModelName(modelName);
 
         const { canProceed, reason } = canProceedWithProvider(
             "anthropic",
@@ -104,7 +87,7 @@ export class ProviderAnthropic implements IProvider {
             .filter((t) => t !== undefined);
 
         const createParams: Anthropic.Messages.MessageCreateParamsStreaming = {
-            model: anthropicModelName,
+            model: modelName,
             messages,
             system: modelConfig.systemPrompt,
             stream: true,
@@ -414,4 +397,20 @@ export async function convertConversationToAnthropic(
     return addCacheControlToLastAttachment(
         await Promise.all(messages.map(formatMessageWithAttachments)),
     );
+}
+
+/**
+ * Fetches the list of available models from the Anthropic API.
+ * Uses the SDK which handles browser access safely.
+ */
+export async function fetchAnthropicModelList(
+    apiKey: string,
+): Promise<Anthropic.ModelInfo[]> {
+    const client = new Anthropic({
+        apiKey,
+        dangerouslyAllowBrowser: true,
+    });
+
+    const response = await client.models.list();
+    return response.getPaginatedItems();
 }

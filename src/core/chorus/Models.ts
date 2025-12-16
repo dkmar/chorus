@@ -6,7 +6,10 @@
 // - Every model comes with a default config that shares its id and has no system prompt.
 
 import { ProviderOpenAI } from "./ModelProviders/ProviderOpenAI";
-import { ProviderAnthropic } from "./ModelProviders/ProviderAnthropic";
+import {
+    ProviderAnthropic,
+    fetchAnthropicModelList,
+} from "./ModelProviders/ProviderAnthropic";
 import { ProviderOpenRouter } from "./ModelProviders/ProviderOpenRouter";
 import { ProviderPerplexity } from "./ModelProviders/ProviderPerplexity";
 import { IProvider } from "./ModelProviders/IProvider";
@@ -502,29 +505,16 @@ export async function downloadAnthropicModels(db: Database): Promise<number> {
     }
 
     try {
-        const response = await fetch("https://api.anthropic.com/v1/models", {
-            headers: {
-                "x-api-key": apiKey,
-                "anthropic-version": "2023-06-01"
-            },
-        });
+        const anthropicModelsAll = await fetchAnthropicModelList(apiKey);
 
-        if (!response.ok) {
-            console.error(
-                "Failed to fetch Anthropic models:",
-                response.statusText,
-            );
-            return 0;
-        }
-
-        const { data: anthropicModelsAll } = (await response.json()) as {
-            data: { id: string; display_name: string }[];
-        };
-
-        // const anthropicModels = anthropicModelsAll.filter((model) => {
-        //     return model.id.includes("sonnet-4-5") || model.id.includes("opus-4-5");
-        // });
-        const anthropicModels = anthropicModelsAll.slice(0, 3);
+        // For now, just show the most recent of each model series (haiku, sonnet, opus)
+        const anthropicModels = ["opus", "sonnet", "haiku"]
+            .map((modelSeries) =>
+                anthropicModelsAll.find((model) =>
+                    model.id.includes(modelSeries),
+                ),
+            )
+            .filter((model) => model !== undefined);
 
         // Disable all existing anthropic models first
         await db.execute(

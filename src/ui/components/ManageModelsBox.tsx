@@ -130,7 +130,6 @@ function ModelGroup({
     onToggleModelConfig,
     refreshButton,
     emptyState,
-    onAddApiKey,
     groupId,
 }: {
     heading: React.ReactNode;
@@ -140,7 +139,6 @@ function ModelGroup({
     onToggleModelConfig: (id: string) => void;
     refreshButton?: React.ReactNode;
     emptyState?: React.ReactNode;
-    onAddApiKey: () => void;
     groupId?: string;
 }) {
     const { data: apiKeys } = AppMetadataAPI.useApiKeys();
@@ -173,6 +171,9 @@ function ModelGroup({
         [apiKeys],
     );
 
+    // Filter out models that aren't allowed (no API key for the provider)
+    const visibleModels = models.filter((m) => !isModelNotAllowed(m) && m.isEnabled);
+
     return (
         <CommandGroup
             heading={
@@ -183,23 +184,17 @@ function ModelGroup({
             }
         >
             {emptyState ||
-                models.map((m) => (
+                visibleModels.map((m) => (
                     <CommandItem
                         key={m.id}
                         value={groupId ? `${groupId}-${m.id}` : m.id}
-                        onSelect={() => {
-                            if (!isModelNotAllowed(m)) {
-                                onToggleModelConfig(m.id);
-                            } else {
-                                onAddApiKey();
-                            }
-                        }}
+                        onSelect={() => onToggleModelConfig(m.id)}
                         disabled={
                             !m.isEnabled ||
                             (mode.type === "add" &&
                                 checkedModelConfigIds.includes(m.id))
                         }
-                        className={`group ${isModelNotAllowed(m) ? "opacity-60" : ""}`}
+                        className="group"
                     >
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3">
@@ -218,38 +213,16 @@ function ModelGroup({
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
-                                {isModelNotAllowed(m) ? (
-                                    <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="text-accent-foreground h-auto p-0 px-1.5"
-                                        onClick={(
-                                            e: React.MouseEvent<HTMLButtonElement>,
-                                        ) => {
-                                            e.stopPropagation();
-                                            onAddApiKey();
-                                        }}
-                                    >
-                                        Add API Key
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <p className="text-sm text-muted-foreground opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
-                                            ⤶ to{" "}
-                                            {mode.type === "single"
-                                                ? "select"
-                                                : checkedModelConfigIds.includes(
-                                                        m.id,
-                                                    )
-                                                  ? "remove"
-                                                  : "add"}
-                                        </p>
-                                        {checkedModelConfigIds.includes(
-                                            m.id,
-                                        ) && (
-                                            <CircleCheckIcon className="!w-5 !h-5 ml-2 fill-primary text-primary-foreground" />
-                                        )}
-                                    </>
+                                <p className="text-sm text-muted-foreground opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
+                                    ⤶ to{" "}
+                                    {mode.type === "single"
+                                        ? "select"
+                                        : checkedModelConfigIds.includes(m.id)
+                                          ? "remove"
+                                          : "add"}
+                                </p>
+                                {checkedModelConfigIds.includes(m.id) && (
+                                    <CircleCheckIcon className="!w-5 !h-5 ml-2 fill-primary text-primary-foreground" />
                                 )}
                             </div>
                         </div>
@@ -599,7 +572,6 @@ export function ManageModelsBox({
                             checkedModelConfigIds={checkedModelConfigIds}
                             mode={mode}
                             onToggleModelConfig={handleToggleModelConfig}
-                            onAddApiKey={handleAddApiKey}
                             groupId="cloud"
                             refreshButton={
                                 <button
@@ -655,7 +627,6 @@ export function ManageModelsBox({
                             checkedModelConfigIds={checkedModelConfigIds}
                             mode={mode}
                             onToggleModelConfig={handleToggleModelConfig}
-                            onAddApiKey={handleAddApiKey}
                             groupId="openrouter"
                             refreshButton={
                                 showOpenRouter && (
@@ -754,7 +725,6 @@ export function ManageModelsBox({
                             checkedModelConfigIds={checkedModelConfigIds}
                             mode={mode}
                             onToggleModelConfig={handleToggleModelConfig}
-                            onAddApiKey={handleAddApiKey}
                             groupId="custom"
                         />
                     )}
@@ -766,7 +736,6 @@ export function ManageModelsBox({
                         checkedModelConfigIds={checkedModelConfigIds}
                         mode={mode}
                         onToggleModelConfig={handleToggleModelConfig}
-                        onAddApiKey={handleAddApiKey}
                         groupId="local"
                         refreshButton={
                             <button

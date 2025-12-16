@@ -25,8 +25,8 @@ Once you have those set up, please run:
 ```bash
 git lfs install --force
 git lfs pull
-pnpm run setup  # This is also our Conductor setup script
-pnpm run dev    # This is also our Conductor run script
+bunx --bun pnpm run setup # pnpm run setup  # This is also our Conductor setup script
+bunx --bun pnpm run dev    # This is also our Conductor run script
 ```
 
 Vite will run on a random even-numbered port between 1422 and 1522, inclusive. HMR will run on the next port. If there's a collision, change the instance name (makes sure to rerun the setup script).

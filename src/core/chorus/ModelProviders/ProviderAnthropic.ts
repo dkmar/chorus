@@ -27,25 +27,20 @@ type MeltyAnthrMessageParam = {
     hasAttachments: boolean;
 };
 
-function getAnthropicModelName(modelName: string): string | undefined {
-    if (
-        ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"].includes(
-            modelName,
-        )
-    ) {
-        return modelName;
-    } else if (modelName === "claude-sonnet-4-latest") {
-        // https://docs.anthropic.com/en/docs/about-claude/models/overview 0 is the new alias for latest
-        return "claude-sonnet-4-0";
-    } else if (modelName === "claude-sonnet-4-5-20250929") {
-        return "claude-sonnet-4-5-20250929";
-    } else if (modelName === "claude-opus-4-latest") {
-        return "claude-opus-4-0";
-    } else if (modelName === "claude-opus-4.1-latest") {
-        return "claude-opus-4-1-20250805";
-    }
+/**
+ * Converts a model name to the format expected by the Anthropic API.
+ * Since we now fetch models dynamically from the Anthropic API, the model IDs
+ * should already be in the correct format. This function handles legacy aliases.
+ */
+function getAnthropicModelName(modelName: string): string {
+    // Handle legacy aliases that map to specific versions
+    const aliasMap: Record<string, string> = {
+        "claude-sonnet-4-latest": "claude-sonnet-4-0",
+        "claude-opus-4-latest": "claude-opus-4-0",
+        "claude-opus-4.1-latest": "claude-opus-4-1-20250805",
+    };
 
-    return undefined;
+    return aliasMap[modelName] ?? modelName;
 }
 
 export class ProviderAnthropic implements IProvider {
@@ -62,9 +57,6 @@ export class ProviderAnthropic implements IProvider {
     }: StreamResponseParams) {
         const modelName = modelConfig.modelId.split("::")[1];
         const anthropicModelName = getAnthropicModelName(modelName);
-        if (!anthropicModelName) {
-            throw new Error(`Unsupported model: ${modelConfig.modelId}`);
-        }
 
         const { canProceed, reason } = canProceedWithProvider(
             "anthropic",
@@ -355,25 +347,19 @@ async function formatMessageWithAttachments(
     };
 }
 
-const getMaxTokens = (modelId: string) => {
+/**
+ * Returns the max output tokens for an Anthropic model.
+ * Uses specific values for known models, with a sensible default for new/unknown models.
+ */
+const getMaxTokens = (modelId: string): number => {
+    // Legacy models with lower limits
     if (modelId === "claude-3-5-sonnet-latest") {
         return 8192;
-    } else if (
-        modelId === "claude-3-7-sonnet-latest" ||
-        modelId === "claude-3-7-sonnet-latest-thinking"
-    ) {
-        return 10000;
-    } else if (modelId === "claude-opus-4-latest") {
-        return 10000;
-    } else if (modelId === "claude-opus-4.1-latest") {
-        return 10000;
-    } else if (modelId === "claude-sonnet-4-latest") {
-        return 10000;
-    } else if (modelId === "claude-sonnet-4-5-20250929") {
-        return 10000;
     }
 
-    throw new Error(`Unsupported model: ${modelId}`);
+    // Default to 16384 for all modern Claude models (claude-4 and later)
+    // This is the standard max output for most current Anthropic models
+    return 16384;
 };
 
 /**

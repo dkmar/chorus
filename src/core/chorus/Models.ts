@@ -20,6 +20,7 @@ import { ProviderGrok } from "./ModelProviders/ProviderGrok";
 import posthog from "posthog-js";
 import { UserTool, UserToolCall, UserToolResult } from "./Toolsets";
 import { Attachment } from "./api/AttachmentsAPI";
+import { SettingsManager } from "@core/utilities/Settings";
 
 /// ------------------------------------------------------------------------------------------------
 /// Basic Types
@@ -483,6 +484,79 @@ export async function downloadLMStudioModels(db: Database): Promise<void> {
             "UPDATE models SET is_enabled = 0 WHERE id LIKE 'lmstudio::%'",
         );
         throw error;
+    }
+}
+
+/**
+ * Downloads models from Anthropic API to refresh the database.
+ * Requires an Anthropic API key to be set in settings.
+ */
+export async function downloadAnthropicModels(db: Database): Promise<number> {
+    const settingsManager = SettingsManager.getInstance();
+    const settings = await settingsManager.get();
+    const apiKey = settings.apiKeys?.anthropic;
+
+    if (!apiKey) {
+        console.log("No Anthropic API key set, skipping model refresh");
+        return 0;
+    }
+
+    try {
+        const response = await fetch("https://api.anthropic.com/v1/models", {
+            headers: {
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01"
+            },
+        });
+
+        if (!response.ok) {
+            console.error(
+                "Failed to fetch Anthropic models:",
+                response.statusText,
+            );
+            return 0;
+        }
+
+        const { data: anthropicModelsAll } = (await response.json()) as {
+            data: { id: string; display_name: string }[];
+        };
+
+        // const anthropicModels = anthropicModelsAll.filter((model) => {
+        //     return model.id.includes("sonnet-4-5") || model.id.includes("opus-4-5");
+        // });
+        const anthropicModels = anthropicModelsAll.slice(0, 3);
+
+        // Disable all existing anthropic models first
+        await db.execute(
+            "UPDATE models SET is_enabled = 0 WHERE id LIKE 'anthropic::%'",
+        );
+
+        // Add/update models from Anthropic API
+        await Promise.all(
+            anthropicModels.map((model) => {
+                return saveModelAndDefaultConfig(
+                    db,
+                    {
+                        id: `anthropic::${model.id}`,
+                        displayName: model.display_name,
+                        supportedAttachmentTypes: [
+                            "text",
+                            "image",
+                            "webpage",
+                            "pdf",
+                        ],
+                        isEnabled: true,
+                        isInternal: false,
+                    },
+                    model.display_name,
+                );
+            }),
+        );
+
+        return anthropicModels.length;
+    } catch (error) {
+        console.error("Error fetching Anthropic models:", error);
+        return 0;
     }
 }
 

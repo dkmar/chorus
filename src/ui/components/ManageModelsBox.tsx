@@ -326,6 +326,7 @@ export function ManageModelsBox({
         ollama: false,
         lmstudio: false,
         openrouter: false,
+        anthropic: false,
     });
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -412,9 +413,10 @@ export function ManageModelsBox({
     const refreshLMStudio = ModelsAPI.useRefreshLMStudioModels();
     const refreshOllama = ModelsAPI.useRefreshOllamaModels();
     const refreshOpenRouter = ModelsAPI.useRefreshOpenRouterModels();
+    const refreshAnthropic = ModelsAPI.useRefreshAnthropicModels();
 
     const handleRefreshProviders = async (
-        provider: "ollama" | "lmstudio" | "openrouter",
+        provider: "ollama" | "lmstudio" | "openrouter" | "anthropic",
     ) => {
         setSpinningProviders((prev) => ({ ...prev, [provider]: true }));
         try {
@@ -424,6 +426,8 @@ export function ManageModelsBox({
                 await refreshLMStudio.mutateAsync();
             } else if (provider === "openrouter") {
                 await refreshOpenRouter.mutateAsync();
+            } else if (provider === "anthropic") {
+                await refreshAnthropic.mutateAsync();
             }
         } finally {
             setTimeout(() => {
@@ -465,7 +469,14 @@ export function ManageModelsBox({
             (m) => getProviderName(m.modelId) === "openrouter",
         );
 
+        // Cloud models = everything that's NOT local and NOT openrouter
+        const cloudModels = systemModels.filter((m) => {
+            const provider = getProviderName(m.modelId);
+            return provider !== "ollama" && provider !== "lmstudio" && provider !== "openrouter";
+        });
+
         return {
+            cloud: filterBySearch(cloudModels, searchTerms),
             custom: filterBySearch(userModels, searchTerms),
             local: filterBySearch(localModels, searchTerms),
             openrouter: filterBySearch(openrouterModels, searchTerms),
@@ -579,6 +590,39 @@ export function ManageModelsBox({
                 </div>
                 <CommandList ref={listRef}>
                     <CommandEmpty>No models found</CommandEmpty>
+
+                    {/* Cloud/API Models */}
+                    {modelGroups.cloud.length > 0 && (
+                        <ModelGroup
+                            heading="Models"
+                            models={modelGroups.cloud}
+                            checkedModelConfigIds={checkedModelConfigIds}
+                            mode={mode}
+                            onToggleModelConfig={handleToggleModelConfig}
+                            onAddApiKey={handleAddApiKey}
+                            groupId="cloud"
+                            refreshButton={
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        void handleRefreshProviders("anthropic");
+                                    }}
+                                    className="p-1.5 hover:bg-accent text-muted-foreground/50 rounded-md flex items-center gap-2"
+                                    title="Refresh Anthropic models"
+                                >
+                                    <RefreshCcwIcon
+                                        className={`w-3 h-3 ${
+                                            spinningProviders["anthropic"]
+                                                ? "animate-spin"
+                                                : ""
+                                        }`}
+                                    />
+                                    <span className="text-sm">Refresh</span>
+                                </button>
+                            }
+                        />
+                    )}
 
                     {/* OpenRouter Models - main list */}
                     {(modelGroups.openrouter.length > 0 ||

@@ -293,6 +293,21 @@ export function useRefreshOpenRouterModels() {
     });
 }
 
+export function useRefreshAnthropicModels() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["refreshAnthropicModels"] as const,
+        mutationFn: async () => {
+            await Models.downloadAnthropicModels(db);
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries(
+                modelConfigQueries.listConfigs(),
+            );
+        },
+    });
+}
+
 export function useRefreshOllamaModels() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -325,6 +340,7 @@ export function useRefreshLMStudioModels() {
 
 export function useRefreshModels() {
     const refreshOpenRouterModels = useRefreshOpenRouterModels();
+    const refreshAnthropicModels = useRefreshAnthropicModels();
     const refreshOllamaModels = useRefreshOllamaModels();
     const refreshLMStudioModels = useRefreshLMStudioModels();
     return useMutation({
@@ -332,6 +348,7 @@ export function useRefreshModels() {
         mutationFn: async () => {
             await Promise.all([
                 refreshOpenRouterModels.mutateAsync(),
+                refreshAnthropicModels.mutateAsync(),
                 refreshOllamaModels.mutateAsync(),
                 refreshLMStudioModels.mutateAsync(),
             ]);

@@ -7,7 +7,7 @@ export const MODEL_IDS = {
     basic: {
         GPT_5_NANO: "openai::gpt-5-nano",
         GPT_5_MINI: "openai::gpt-5-mini",
-        GEMINI_FLASH: "google::gemini-2.5-flash",
+        GEMINI_FLASH: "google::gemini-3-flash-preview",
         GROK_3_MINI: "grok::grok-3-mini-beta",
     },
     frontier: {
@@ -20,7 +20,9 @@ export const MODEL_IDS = {
     plus: {
         GPT_5: "openai::gpt-5",
         CLAUDE_4_SONNET: "anthropic::claude-sonnet-4-5-20250929",
+        CLAUDE_4_HAIKU: "anthropic::claude-haiku-4-5-20251001",
         GEMINI_2_5_PRO: "google::gemini-2.5-pro-latest",
+        GEMINI_FLASH: "google::gemini-3-flash-preview",
         O3: "openai::o3",
         O4_MINI: "openai::o4-mini",
         DEEPSEEK_R1_0528: "openrouter::deepseek/deepseek-r1-0528",
@@ -37,6 +39,7 @@ export const OPENROUTER_CUSTOM_PROVIDER_LOGOS: Record<string, ProviderName> = {
 // Flatten the MODEL_IDS object into a single array of allowed IDs
 export const ALLOWED_MODEL_IDS_FOR_QUICK_CHAT: string[] = [
     ...Object.values(MODEL_IDS).flatMap((tier) => Object.values(tier)),
+    "google::gemini-3-flash-preview",
     // Add our custom models for quick chat
     "24711c64-725c-4bdd-b5eb-65fe1dbfcde8", // Ambient Claude
     "google::ambient-gemini-2.5-pro-preview-03-25", // Ambient Gemini

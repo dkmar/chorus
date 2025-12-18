@@ -2458,5 +2458,19 @@ You have full access to bash commands on the user''''s computer. If you write a 
                     ('selected_model_configs_compare', '["openrouter::anthropic/claude-opus-4.5"]');
             "#,
         },
+        Migration {
+            version: 132,
+            description: "add google gemini 3 flash preview model",
+            kind: MigrationKind::Up,
+            sql: r#"
+                -- Add Gemini 3 Flash Preview model
+                INSERT OR REPLACE INTO models (id, display_name, is_enabled, supported_attachment_types) VALUES
+                    ('google::gemini-3-flash-preview', 'Gemini 3 Flash Preview', 1, '["text", "image"]');
+
+                -- Add Gemini 3 Flash Preview model config
+                INSERT OR REPLACE INTO model_configs (author, id, model_id, display_name, system_prompt, is_default, new_until) VALUES
+                    ('system', 'google::gemini-3-flash-preview', 'google::gemini-3-flash-preview', 'Gemini 3 Flash Preview', '', 0, '2026-01-15 00:00:00');
+            "#,
+        },
     ];
 }

@@ -35,7 +35,7 @@ function getGoogleModelName(modelName: string): string | undefined {
             "gemini-2.5-pro-exp-03-25",
             "gemini-2.0-flash",
             "gemini-2.5-pro-preview-03-25",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         ].includes(modelName)
     ) {
         // allowed model names
@@ -85,11 +85,20 @@ export class ProviderGoogle implements IProvider {
             customBaseUrl ||
             "https://generativelanguage.googleapis.com/v1beta/openai";
 
+        // https://discuss.ai.google.dev/t/gemini-api-cors-error-with-openai-compatability/58619/16
         const client = new OpenAI({
             baseURL,
             apiKey: apiKeys.google,
             defaultHeaders: {
                 ...(additionalHeaders ?? {}),
+                'x-stainless-arch': null,
+                'x-stainless-lang': null,
+                'x-stainless-os': null,
+                'x-stainless-package-version': null,
+                'x-stainless-retry-count': null,
+                'x-stainless-runtime': null,
+                'x-stainless-runtime-version': null,
+                'x-stainless-timeout': null,
             },
             dangerouslyAllowBrowser: true,
         });
